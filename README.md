@@ -1,5 +1,8 @@
 # Agent Worker
 
+Vercel support: the Next.js dashboard and cloud API are implemented. See [Vercel setup](docs/vercel.md) for database and private environment requirements. A locked setup page does not mean AI, Gmail, or Instagram are connected.
+
+
 A personal AI marketing workspace with a pixel-art office, real eve agent sessions, campaign editing, and a Gmail OAuth sending integration. Node.js 24 is required.
 
 ## Current verified status
@@ -56,7 +59,7 @@ Local mode binds to loopback. Production mode requires a canonical HTTPS origin,
 
 ## Verification
 
-npm test runs fourteen API, persistence, OAuth, token-vault, sending, deduplication, and failure-status checks. External Gmail responses in those tests are controlled fixtures; no email is sent by the tests. npm run typecheck checks the agent definitions. Browser QA checks the real connection screen and model-check error handling. Live campaign generation and Gmail delivery are not verified without the owner's accounts.
+npm test runs twenty API, persistence, OAuth, token-vault, sending, deduplication, and failure-status checks. External Gmail responses in those tests are controlled fixtures; no email is sent by the tests. npm run typecheck checks the agent definitions. Browser QA checks the real connection screen and model-check error handling. Live campaign generation and Gmail delivery are not verified without the owner's accounts.
 
 Framework: https://eve.dev/docs
 Google OAuth: https://developers.google.com/identity/protocols/oauth2/web-server

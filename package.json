@@ -7,7 +7,7 @@
     "#evals/*": "./evals/*"
   },
   "scripts": {
-    "build": "eve build",
+    "build": "next build",
     "deploy": "eve deploy",
     "dev": "node --env-file-if-exists=.env.local workspace.mjs",
     "eval": "eve eval",
@@ -15,17 +15,28 @@
     "typecheck": "tsc",
     "agent:dev": "eve dev --no-ui --host 127.0.0.1 --port 2000 --no-default-extensions",
     "web": "node --env-file-if-exists=.env.local workspace.mjs",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "build:agent": "eve build",
+    "cloud:dev": "next dev --port 3200",
+    "cloud:start": "next start --port 3200"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
     "@vercel/connect": "2.5.2",
+    "@vercel/functions": "^3.10.3",
+    "@vercel/oidc": "^4.0.3",
     "ai": "^7.0.137",
     "eve": "^0.82.0",
     "just-bash": "3.1.0",
+    "next": "^16.4.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "zod": "4.5.4"
   },
   "devDependencies": {
     "@types/node": "24.x",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "typescript": "7.0.2"
   },
   "engines": {

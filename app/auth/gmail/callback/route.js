@@ -1,0 +1,4 @@
+import {handleCloud} from '../../../../cloud/api.mjs';
+export const runtime='nodejs';
+export const dynamic='force-dynamic';
+export {handleCloud as GET};

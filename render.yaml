@@ -6,7 +6,7 @@ services:
     branch: main
     plan: starter
     numInstances: 1
-    buildCommand: npm ci --include=dev && npm run build
+    buildCommand: npm ci --include=dev && npm run build:agent
     startCommand: npm start
     healthCheckPath: /healthz
     autoDeployTrigger: checksPass
