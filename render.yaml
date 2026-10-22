@@ -16,13 +16,13 @@ services:
       sizeGB: 1
     envVars:
       - key: NODE_VERSION
-        value: 24
+        value: "24"
       - key: NODE_ENV
         value: production
       - key: DATA_DIR
         value: /var/data/agent-worker
       - key: AUTO_START_AGENT
-        value: 1
+        value: "1"
       - key: APP_OWNER_USER
         value: owner
       - key: APP_OWNER_PASSWORD
