@@ -9,7 +9,7 @@
   "scripts": {
     "build": "eve build",
     "deploy": "eve deploy",
-    "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs",
+    "dev": "node --env-file-if-exists=.env.local workspace.mjs",
     "eval": "eve eval",
     "start": "node --env-file-if-exists=.env.local workspace.mjs",
     "typecheck": "tsc",

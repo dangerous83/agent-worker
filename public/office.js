@@ -15,13 +15,13 @@ export function officeMarkup() {
   <section class="agent-inspector" aria-label="Selected worker" aria-live="polite"><div class="agent-mini" id="agent-mini">✦</div><div class="agent-intro"><p class="eyebrow" id="agent-role">YOUR NEXT GREAT COLLABORATOR</p><h2 id="agent-name">Good things start with a hello.</h2><p id="agent-line">Pick someone in the office to see what they do.</p></div><div class="agent-controls"><span id="agent-mode">No campaign running</span><button class="button primary" id="assign-agent" disabled>Choose a teammate ↗</button></div></section>`;
 }
 
-export function mountOffice({ hasJob, onAssign }) {
+export function mountOffice({ hasJob, workerState, onAssign }) {
   const canvas = document.querySelector('#office-scene');
   if (!canvas) return () => {};
   const ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  let paused = reduced.matches, selected = null, previewUntil = 0, previous = 0, animationClock = 0, frame, disposed = false;
+  let paused = reduced.matches, selected = null, previous = 0, animationClock = 0, frame, disposed = false;
   const people = staff.map((s, index) => ({ ...s, px: s.x, py: 278, goal: 0, moving: false, clock: index * 2, path: [], pause: index * 1.2 }));
   const routes = [[148, 300], [367, 300], [586, 300], [805, 300], [810, 380], [568, 330], [380, 330], [148, 300]];
   const rect = (x, y, w, h, color) => { ctx.fillStyle = color; ctx.fillRect(Math.round(x), Math.round(y), w, h); };
@@ -83,12 +83,12 @@ export function mountOffice({ hasJob, onAssign }) {
     rect(765,300,48,37,'#4b5d5a');rect(770,305,38,8,'#82998d');rect(777,316,24,18,'#2d4443');rect(783,324,12,10,'#f7e3be');
     rect(838,322,13,15,'#a4b985');rect(856,322,13,15,'#a4b985');text('COFFEE + CURIOSITY',746,445,'#8d8268',9);
     plant(61,270,true);plant(899,270,true);plant(889,146);plant(58,146);
-    people.forEach(p=>desk(p.x,p.role.toUpperCase(),p.color,tick,busy || (selected===p.id && tick<previewUntil)));
+    people.forEach(p=>desk(p.x,p.role.toUpperCase(),p.color,tick,workerState(p.id)==='working'));
     text('AGENT WORKER HQ',383,503,'#758c76',11);
     rect(360,493,6,6,'#8da482');rect(593,493,6,6,'#8da482');
   }
   function person(p, tick, busy) {
-    const work = !p.moving && (busy || (selected===p.id && tick<previewUntil));
+    const work = !p.moving && (workerState(p.id)==='working');
     const bob = !paused && p.moving ? Math.floor(Math.sin(tick*13)*2) : 0;
     const x = Math.round(p.px)-24, y = Math.round(p.py)-68+bob, k=3;
     const r=(a,b,w,h,c)=>rect(x+a*k,y+b*k,w*k,h*k,c);
@@ -113,7 +113,7 @@ export function mountOffice({ hasJob, onAssign }) {
   function updatePanel() {
     const busy=hasJob(),s=staff.find(p=>p.id===selected);
     document.querySelector('#office-state').textContent=busy?'Campaign in progress':selected?'Meeting your teammate':paused?'Office paused':'Roaming the office';
-    document.querySelector('#agent-mode').textContent=busy?'● Campaign in progress':s?(animationClock<previewUntil?'Animation preview · no task started':'Ready for your brief'):'No campaign running';
+    document.querySelector('#agent-mode').textContent=s?(workerState(s.id)==='working'?'● Working on your campaign':workerState(s.id)==='completed'?'Task completed':busy?'Waiting for assignment':'Ready for your brief'):'No campaign running';
     if(!s)return;
     document.querySelector('#agent-role').textContent=s.role;
     document.querySelector('#agent-name').textContent=`Say hello to ${s.name}.`;
@@ -123,7 +123,7 @@ export function mountOffice({ hasJob, onAssign }) {
     const assign=document.querySelector('#assign-agent');assign.disabled=false;assign.textContent=`Give ${s.name} a brief ↗`;
   }
   function select(id) {
-    selected=id;previewUntil=animationClock+9;
+    selected=id;
     people.forEach(p=>{if(p.id===id)goToDesk(p);});
     canvas.parentElement.querySelectorAll('[data-agent]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.agent===id)));
     updatePanel();
@@ -153,9 +153,9 @@ export function mountOffice({ hasJob, onAssign }) {
         if(p.moving){const [gx,gy]=p.path[0],dist=Math.hypot(gx-p.px,gy-p.py),step=Math.min(delta*49,dist);p.px+=(gx-p.px)/dist*step;p.py+=(gy-p.py)/dist*step;}
       }else p.moving=false;
     }
-    room(tick,busy);[...people].sort((a,b)=>a.py-b.py).forEach(p=>person(p,tick,busy));
-    const mode=busy?'busy':selected&&tick<previewUntil?'preview':selected?'ready':paused?'paused':'idle';
-    if(mode!==lastMode){lastMode=mode;updatePanel();if(mode==='ready')document.querySelector('#agent-mode').textContent='Ready for your brief';}
+    room(tick,busy);[...people].sort((a,b)=>a.py-b.py).forEach(p=>person(p,tick,workerState(p.id)==='working'));
+    const mode=[busy,selected,selected?workerState(selected):'',paused].join(':');
+    if(mode!==lastMode){lastMode=mode;updatePanel();}
     frame=requestAnimationFrame(animate);
   }
   frame=requestAnimationFrame(animate);

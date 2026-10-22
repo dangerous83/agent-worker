@@ -1,62 +1,60 @@
 # Agent Worker
 
-A personal AI marketing workspace for Instagram creative and email drafts. Built with Node.js 24, SQLite, and eve 0.82.0.
+A personal AI marketing workspace with a pixel-art office, real eve agent sessions, campaign editing, and a Gmail OAuth sending integration. Node.js 24 is required.
 
-## What works
+## Current verified status
 
-- Interactive pixel-art office as the opening dashboard: four walking characters, workstations, a lounge, and a coffee corner.
-- Click Milo, Luna, Kai, or Nova to meet them, preview their work animation, and open a role-specific campaign brief.
-- Characters go to their desks while a real campaign job runs. Animation previews are explicitly labeled; clicking alone never dispatches a job.
-- Pause/resume controls, keyboard-accessible characters, and reduced-motion support.
-- Campaign studio and persistent brand memory.
-- Create, edit, save, and approve Instagram/email campaign drafts.
-- Live square ad typography preview and 1080 x 1080 PNG downloads.
-- Copy Instagram captions and open email drafts in your default email app.
-- AI manager with Instagram, email, and review specialists through eve.
-- Background generation jobs with persisted success/failure status.
-- Planning dates for organization (not automatic scheduling or reminders).
+- The dashboard starts its local AI service automatically (or reuses an existing healthy service).
+- Connections distinguishes service availability from a verified model response. A running service is never enough to mark the model ready.
+- AI model credentials are not included. The owner chose to complete model sign-in themselves. Live campaign generation remains blocked until that connection succeeds.
+- Gmail authorization, encrypted token storage, refresh, and sending are implemented. The owner must supply a Google Web OAuth client and authorize Gmail before real delivery can be verified.
+- Instagram is a personal account. Instagram's official publishing API requires a Business or Creator account; no direct publishing integration is connected or claimed.
+- The app is local. There is no verified public deployment. Vercel returned 403 for the owner's project team even after the owner reported granting access; the requested team-authorization tool is unavailable in the current session.
 
-## Run locally
+## Run the whole app
 
-1. Install Node.js 24.
-2. Clone this repository and run npm ci.
-3. Run npm run dev.
-4. Open http://127.0.0.1:3100.
+1. Install Node.js 24 and run npm ci in this repository.
+2. Run npm start (npm run dev and npm run web also start the complete app).
+3. Open http://127.0.0.1:3100.
 
-To use the editor without AI, run npm run web.
+The dashboard starts the AI runtime on loopback port 2000. It keeps running if the AI process fails, and Connections offers a startup retry. Runtime diagnostics are in data/agent-runtime.log, which is excluded from Git.
 
-## Connect the AI staff
+## Connect your model
 
-Copy .env.example to .env.local and set AI_GATEWAY_API_KEY to your own Vercel AI Gateway credential, then restart npm run dev. Alternatively, connect a supported model account using the eve terminal UI (npm exec -- eve dev, then /login). The browser dashboard checks runtime availability, not model credential validity. A runtime can be online while the model still needs login.
+Double-click Connect Model.cmd. In the terminal type /login, choose a supported model connection, and complete sign-in yourself. Return to Connections and click Check model connection. The app only marks the model ready after a real validated response. Provider usage charges may apply.
 
-AI credentials are required for generation and may incur provider usage charges. No model key is included. Never paste credentials into GitHub, brand memory, campaign briefs, or public source files.
+Alternatively, copy .env.example to .env.local, configure AI_GATEWAY_API_KEY, and restart. Model login credentials entered through eve's /login are managed by eve's OS secret store. Never paste credentials into campaign briefs, GitHub, or chat.
 
-## Current connection limits
+## Connect Gmail
 
-Instagram direct publishing, automated email sending, paid ads, delivery analytics, AI-generated photography, and background scheduling are NOT implemented in this first version. The Connections page reports these limits. Email opens a mailto draft; the owner chooses the recipient and sends. Approval is a local review marker and never triggers sending or posting. Image direction is a text prompt; the downloadable ad is a typography design.
+In Google Cloud, enable the Gmail API, configure the OAuth consent screen, and create a Web application OAuth client. For personal testing, add your Gmail address to the consent screen's test users.
 
-Next integration work requires the owner's Instagram account authorization and chosen email provider. Keep tokens server-side. Do not add fake connected states or pretend a draft has been delivered.
+Register this exact redirect URI:
+http://127.0.0.1:3100/auth/gmail/callback
 
-## Privacy and hosting
+In Connections, save the client ID and secret and click Connect Gmail. Google requests the gmail.send scope plus openid/email to identify the sending account. The app does not request permission to read your inbox.
 
-This is a local personal application. The dashboard binds only to 127.0.0.1 and checks Host and Origin headers. The eve runtime also binds to loopback; its production channel fails closed. Data is stored in data/workspace.sqlite (ignored by Git). AI generation sends the supplied brief and brand context to the configured AI model. GitHub contains source code only.
+Tokens and OAuth client secrets are encrypted with AES-256-GCM in the local SQLite database. The encryption key is data/.secret-key. Both the key and database are excluded from Git. Back them up together if you need to retain connections.
 
-This repository is not a publicly hosted app. Do not expose the development server to the internet. Remote hosting requires owner authentication, a persistent database, secure runtime route authentication, and a supported eve hosting/sandbox configuration. The build script compiles the agent runtime, not a full hosted dashboard deployment.
+To send: save and approve a campaign, open it, click Send with Gmail, enter the recipient, review the saved subject and body, then click Send email now. The app only records sent after Gmail returns a message ID. Repeated requests with the same send ID are deduplicated. A network failure after dispatch is marked uncertain; check Gmail Sent before attempting another send. Disconnect removes the local connection; use your Google account settings if you also want to revoke the app's Google authorization.
+
+## The office is connected to real work
+
+Characters roam when idle. Clicking a character selects them and prepares a role-specific brief; it does not fabricate a working session. Typing and active monitors are driven by actual manager/specialist progress events from the eve stream. The office bulletin reports actual job progress and failures. Previous developer-created sample campaign data is archived locally rather than counted as real work.
+
+## What the creative tools produce
+
+The campaign studio saves Instagram captions, email copy, and image direction. Its downloadable 1080 x 1080 ad is a typography layout. The image direction is a text brief, not an AI-generated photograph. Planning dates are organizational fields, not a live scheduler.
+
+## Hosting
+
+The local HTTP server binds to loopback and checks Host and Origin. Its credential configuration endpoints must not be exposed publicly. The eve production channel fails closed. Deploying the whole app requires owner authentication, persistent storage, protected AI routes, and a server-side model credential or supported project OIDC. A local subscription login does not authorize cloud inference. No static-only deployment or dummy public site is included.
 
 ## Verification
 
-Run npm test and npm run typecheck. Integration tests exercise the real HTTP API and SQLite with an injected test agent; they do not claim to test live model credentials or social/email delivery. The dashboard, manual campaign creation, approval, and persistence were checked in a browser. The real eve runtime started and its health/info routes worked. A live model turn was blocked by an unavailable model connection; generation remains unverified until a model is connected.
+npm test runs eleven API, persistence, OAuth, token-vault, sending, deduplication, and failure-status checks. External Gmail responses in those tests are controlled fixtures; no email is sent by the tests. npm run typecheck checks the agent definitions. Browser QA checks the real connection screen and model-check error handling. Live campaign generation and Gmail delivery are not verified without the owner's accounts.
 
-## Structure
-
-- public/: responsive dashboard and campaign editor.
-- workspace.mjs: local HTTP API and static app server.
-- lib/store.mjs: SQLite persistence.
-- lib/agent.mjs: eve client and structured campaign validation.
-- agent/: manager, specialist definitions, and route protection.
-- scripts/dev.mjs: local dashboard and agent runtime launcher.
-- tests/: API and persistence integration tests.
-
-## Official framework guidance
-
-See https://eve.dev/docs for model connections, runtime hosting, and integration support.
+Framework: https://eve.dev/docs
+Google OAuth: https://developers.google.com/identity/protocols/oauth2/web-server
+Gmail sending: https://developers.google.com/workspace/gmail/api/guides/sending
+Instagram: https://developers.facebook.com/docs/instagram-platform/

@@ -15,3 +15,5 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: node --check public/app.js
+      - run: node --check public/office.js
+      - run: node --check public/connections.js
