@@ -109,11 +109,11 @@ export function mountOffice({ hasJob, onAssign }) {
     const button=canvas.parentElement.querySelector(`[data-agent="${p.id}"]`);
     button.style.left=`${p.px/9.6}%`;button.style.top=`${(p.py-27)/5.2}%`;
   }
-  function goToDesk(p){p.path=[[p.px,300],[p.x,300],[p.x,251]];}
+  function goToDesk(p){if(paused){p.px=p.x;p.py=251;p.path=[];return;}p.path=[[p.px,300],[p.x,300],[p.x,251]];}
   function updatePanel() {
     const busy=hasJob(),s=staff.find(p=>p.id===selected);
     document.querySelector('#office-state').textContent=busy?'Campaign in progress':selected?'Meeting your teammate':paused?'Office paused':'Roaming the office';
-    document.querySelector('#agent-mode').textContent=busy?'● Campaign in progress':s?'Animation preview · no task started':'No campaign running';
+    document.querySelector('#agent-mode').textContent=busy?'● Campaign in progress':s?(animationClock<previewUntil?'Animation preview · no task started':'Ready for your brief'):'No campaign running';
     if(!s)return;
     document.querySelector('#agent-role').textContent=s.role;
     document.querySelector('#agent-name').textContent=`Say hello to ${s.name}.`;
