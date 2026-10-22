@@ -52,7 +52,7 @@ export function createApp({store=createStore(),agent=createAgent()}={}) {
       }
       if(url.pathname.startsWith('/api/'))return send(res,404,{error:'Not found.'});
       if(req.method!=='GET')return send(res,405,{error:'Method not allowed.'});
-      const paths={'/':'index.html','/app.js':'app.js','/styles.css':'styles.css'};
+      const paths={'/':'index.html','/app.js':'app.js','/office.js':'office.js','/styles.css':'styles.css','/office.css':'office.css'};
       const name=paths[url.pathname];if(!name)return send(res,404,{error:'Not found.'});
       const content=await readFile(new URL(`./public/${name}`,import.meta.url));
       res.writeHead(200,{'Content-Type':({'html':'text/html','js':'text/javascript','css':'text/css'})[extname(name).slice(1)]+'; charset=utf-8'});res.end(content);

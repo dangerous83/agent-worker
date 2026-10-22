@@ -4,7 +4,11 @@ A personal AI marketing workspace for Instagram creative and email drafts. Built
 
 ## What works
 
-- Dashboard, campaign studio, and persistent brand memory.
+- Interactive pixel-art office as the opening dashboard: four walking characters, workstations, a lounge, and a coffee corner.
+- Click Milo, Luna, Kai, or Nova to meet them, preview their work animation, and open a role-specific campaign brief.
+- Characters go to their desks while a real campaign job runs. Animation previews are explicitly labeled; clicking alone never dispatches a job.
+- Pause/resume controls, keyboard-accessible characters, and reduced-motion support.
+- Campaign studio and persistent brand memory.
 - Create, edit, save, and approve Instagram/email campaign drafts.
 - Live square ad typography preview and 1080 x 1080 PNG downloads.
 - Copy Instagram captions and open email drafts in your default email app.
