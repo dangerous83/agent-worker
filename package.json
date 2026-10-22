@@ -1,0 +1,33 @@
+{
+  "name": "agent-worker",
+  "version": "0.0.0",
+  "type": "module",
+  "imports": {
+    "#*": "./agent/*",
+    "#evals/*": "./evals/*"
+  },
+  "scripts": {
+    "build": "eve build",
+    "deploy": "eve deploy",
+    "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs",
+    "eval": "eve eval",
+    "start": "node --env-file-if-exists=.env.local workspace.mjs",
+    "typecheck": "tsc",
+    "agent:dev": "eve dev --no-ui --host 127.0.0.1 --port 2000 --no-default-extensions",
+    "web": "node --env-file-if-exists=.env.local workspace.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@vercel/connect": "2.5.2",
+    "ai": "^7.0.137",
+    "eve": "^0.82.0",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "24.x",
+    "typescript": "7.0.2"
+  },
+  "engines": {
+    "node": "24.x"
+  }
+}
