@@ -11,6 +11,10 @@ A personal AI marketing workspace with a pixel-art office, real eve agent sessio
 - Instagram is a personal account. Instagram's official publishing API requires a Business or Creator account; no direct publishing integration is connected or claimed.
 - The app is local. There is no verified public deployment. Vercel returned 403 for the owner's project team even after the owner reported granting access; the requested team-authorization tool is unavailable in the current session.
 
+## Deploy automatically from GitHub
+
+The repository includes render.yaml for a full Node backend with a 1 GB persistent disk, owner sign-in, and automatic deployment after GitHub checks pass. See [the deployment guide](docs/deployment.md). Activating it requires connecting Render, reviewing its paid service/disk charges, and setting the private owner password and server-side model key. The Blueprint is prepared; it is not proof of a live deployment.
+
 ## Run the whole app
 
 1. Install Node.js 24 and run npm ci in this repository.
@@ -48,11 +52,11 @@ The campaign studio saves Instagram captions, email copy, and image direction. I
 
 ## Hosting
 
-The local HTTP server binds to loopback and checks Host and Origin. Its credential configuration endpoints must not be exposed publicly. The eve production channel fails closed. Deploying the whole app requires owner authentication, persistent storage, protected AI routes, and a server-side model credential or supported project OIDC. A local subscription login does not authorize cloud inference. No static-only deployment or dummy public site is included.
+Local mode binds to loopback. Production mode requires a canonical HTTPS origin, strong owner sign-in, a protected internal AI runtime, persistent DATA_DIR, and a server-side model key before startup. The production build uses eve start and fails closed without internal authentication. The health route is public and only returns an availability flag. Gmail OAuth uses the hosted HTTPS callback and Secure cookies in production. Local subscription login does not authorize cloud inference. No static-only or dummy deployment is included.
 
 ## Verification
 
-npm test runs eleven API, persistence, OAuth, token-vault, sending, deduplication, and failure-status checks. External Gmail responses in those tests are controlled fixtures; no email is sent by the tests. npm run typecheck checks the agent definitions. Browser QA checks the real connection screen and model-check error handling. Live campaign generation and Gmail delivery are not verified without the owner's accounts.
+npm test runs fourteen API, persistence, OAuth, token-vault, sending, deduplication, and failure-status checks. External Gmail responses in those tests are controlled fixtures; no email is sent by the tests. npm run typecheck checks the agent definitions. Browser QA checks the real connection screen and model-check error handling. Live campaign generation and Gmail delivery are not verified without the owner's accounts.
 
 Framework: https://eve.dev/docs
 Google OAuth: https://developers.google.com/identity/protocols/oauth2/web-server

@@ -8,11 +8,12 @@ import { z } from 'zod';
 import { createRuntime } from './lib/runtime.mjs';
 import { createVault } from './lib/vault.mjs';
 import { createGmail } from './lib/gmail.mjs';
+import { deploymentConfig, validOwner, persistWorkflows } from './lib/deployment.mjs';
 
 const brandSchema = z.object({name:z.string().max(120),audience:z.string().max(1000),voice:z.string().max(400),description:z.string().max(4000),color:z.string().regex(/^#[0-9a-f]{6}$/i)});
 const editsSchema = campaignSchema.partial().extend({ status: z.enum(['draft','approved']), plannedAt: z.string().max(50).optional() }).partial();
 
-export function createApp({store=createStore(),agent=createAgent(),runtime=null,gmail=null}={}) {
+export function createApp({store=createStore(),agent=createAgent(),runtime=null,gmail=null,config=deploymentConfig()}={}) {
   // A restart cannot safely redeliver an interrupted campaign without risking duplicate model charges.
   for (const job of store.jobs().filter(j=>j.status==='running')) store.updateJob(job.id,{status:'failed',error:'The app restarted before the campaign finished. Please try again.'});
   let running = false;
@@ -23,8 +24,14 @@ export function createApp({store=createStore(),agent=createAgent(),runtime=null,
     res.setHeader('Cache-Control','no-store');
     try {
       const host=req.headers.host || '';
-      if(!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host))return send(res,403,{error:'Local workspace only.'});
-      if(req.headers.origin && ![`http://${host}`,`https://${host}`].includes(req.headers.origin))return send(res,403,{error:'Origin rejected.'});
+      if(req.method==='GET'&&req.url==='/healthz')return send(res,200,{ok:true});
+      if(config.production){
+        if(host!==new URL(config.origin).host)return send(res,403,{error:'Host rejected.'});
+        if(!validOwner(req.headers.authorization,config)){res.setHeader('WWW-Authenticate','Basic realm="Agent Worker", charset="UTF-8"');return send(res,401,{error:'Owner sign-in required.'});}
+        res.setHeader('Strict-Transport-Security','max-age=31536000');
+      }else if(!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host))return send(res,403,{error:'Local workspace only.'});
+      const origin=config.origin||`http://${host}`;
+      if(req.headers.origin&&req.headers.origin!==origin)return send(res,403,{error:'Origin rejected.'});
       const url=new URL(req.url,'http://localhost');
       let body={};
       if(['POST','PATCH','PUT'].includes(req.method)){
@@ -34,7 +41,7 @@ export function createApp({store=createStore(),agent=createAgent(),runtime=null,
       }
       if(req.method==='GET'&&url.pathname==='/api/workspace'){
         const online=await agent.health();
-        return send(res,200,{brand:store.brand(),campaigns:store.campaigns(),jobs:store.jobs(),connections:{ai:online,aiModel:agent.status?.()||{state:'unverified'},runtime:runtime?await runtime.status():{state:online?'online':'offline'},instagram:false,instagramAccountType:'personal',email:gmail?.status().connected||false,gmail:gmail?.status()||{configured:false,connected:false},hosting:{state:'local',message:'This app is currently running on your computer. Public hosting is not configured.'}}});
+        return send(res,200,{brand:store.brand(),campaigns:store.campaigns(),jobs:store.jobs(),connections:{ai:online,aiModel:agent.status?.()||{state:'unverified'},runtime:runtime?await runtime.status():{state:online?'online':'offline'},instagram:false,instagramAccountType:'personal',email:gmail?.status().connected||false,gmail:gmail?.status()||{configured:false,connected:false},hosting:{state:config.production?'hosted':'local',origin:config.origin,message:config.production?'Running on the backend host with owner sign-in and persistent storage.':'This app is currently running on your computer. Public hosting is not configured.'}}});
       }
       if(req.method==='POST'&&url.pathname==='/api/runtime/start'){
         if(!runtime)return send(res,409,{error:'Start the app with npm start to manage the AI service.'});
@@ -54,14 +61,14 @@ export function createApp({store=createStore(),agent=createAgent(),runtime=null,
       }
       if(req.method==='POST'&&url.pathname==='/api/connections/gmail/start'){
         if(!gmail)return send(res,503,{error:'Gmail integration unavailable.'});
-        const result=gmail.start(`http://${host}`);
-        res.setHeader('Set-Cookie',`gmail_oauth_state=${result.state}; HttpOnly; SameSite=Lax; Path=/auth/gmail/callback; Max-Age=600`);
+        const result=gmail.start(origin);
+        res.setHeader('Set-Cookie',`gmail_oauth_state=${result.state}; HttpOnly; SameSite=Lax; Path=/auth/gmail/callback; Max-Age=600${config.production?'; Secure':''}`);
         return send(res,200,{url:result.url});
       }
       if(req.method==='GET'&&url.pathname==='/auth/gmail/callback'){
         if(!gmail)return send(res,503,{error:'Gmail integration unavailable.'});
         const cookieState=req.headers.cookie?.split(';').map(c=>c.trim()).find(c=>c.startsWith('gmail_oauth_state='))?.split('=')[1];
-        res.setHeader('Set-Cookie','gmail_oauth_state=; HttpOnly; SameSite=Lax; Path=/auth/gmail/callback; Max-Age=0');
+        res.setHeader('Set-Cookie',`gmail_oauth_state=; HttpOnly; SameSite=Lax; Path=/auth/gmail/callback; Max-Age=0${config.production?'; Secure':''}`);
         try{
           if(url.searchParams.has('error'))throw new Error('Authorization declined.');
           await gmail.complete({state:url.searchParams.get('state'),cookieState,code:url.searchParams.get('code')});
@@ -107,10 +114,11 @@ export function createApp({store=createStore(),agent=createAgent(),runtime=null,
   });
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+  const config=deploymentConfig();if(config.production)persistWorkflows(config.dataDir);
   const port=Number(process.env.PORT||3100),store=createStore();
   for(const campaign of store.campaigns())if(campaign.title==='Example campaign — editable sample'&&campaign.caption==='Share your next idea with us.'&&campaign.source==='manual')store.archiveCampaign(campaign.id);
   const runtime=createRuntime(),gmail=createGmail({store,vault:createVault(store)});
-  const server=createApp({store,runtime,gmail});
-  server.listen(port,'127.0.0.1',()=>{console.log(`Agent Worker: http://127.0.0.1:${port}`);if(process.env.AUTO_START_AGENT!=='0')void runtime.start().catch(()=>console.log('AI startup needs attention. Open Connections.'));});
+  const server=createApp({store,runtime,gmail,config});
+  server.listen(port,config.production?'0.0.0.0':'127.0.0.1',()=>{console.log(`Agent Worker: ${config.origin||`http://127.0.0.1:${port}`}`);if(process.env.AUTO_START_AGENT!=='0')void runtime.start().catch(()=>console.log('AI startup needs attention. Open Connections.'));});
   for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{runtime.stop();server.close(()=>{store.close();process.exit(0);});});
 }

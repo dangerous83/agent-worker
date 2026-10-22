@@ -1,0 +1,33 @@
+# No infrastructure is created until this Blueprint is reviewed and applied in Render.
+services:
+  - type: web
+    name: agent-worker
+    runtime: node
+    branch: main
+    plan: starter
+    numInstances: 1
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeployTrigger: checksPass
+    disk:
+      name: agent-worker-data
+      mountPath: /var/data/agent-worker
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 24
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data/agent-worker
+      - key: AUTO_START_AGENT
+        value: 1
+      - key: APP_OWNER_USER
+        value: owner
+      - key: APP_OWNER_PASSWORD
+        sync: false
+      - key: AI_RUNTIME_PASSWORD
+        generateValue: true
+      - key: AI_GATEWAY_API_KEY
+        sync: false
