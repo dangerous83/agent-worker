@@ -7,6 +7,7 @@ import {createAgent,campaignSchema} from '../lib/agent.mjs';
 import {cloudStore} from './store.mjs';
 import {authorize,cloudVault,missingSettings} from './security.mjs';
 import {cloudGmail} from './gmail.mjs';
+import {handleLogin} from './login.mjs';
 const workers={manager:'Milo',instagram:'Luna',email:'Kai',reviewer:'Nova'};
 const workerSchema=z.enum(Object.keys(workers));
 const brandSchema=z.object({name:z.string().max(120),audience:z.string().max(1000),voice:z.string().max(400),description:z.string().max(4000),color:z.string().regex(/^#[0-9a-f]{6}$/i)});
@@ -20,10 +21,11 @@ export function setupResponse(){return new Response(`<!doctype html><html lang="
 export function createCloudHandler({env=process.env,storeFactory=cloudStore,agentFactory,keepAlive=waitUntil,fetcher=fetch}={}){
  return async function handle(request){
   const url=new URL(request.url),path=url.pathname;
+  if(path==='/api/login'||path==='/api/logout')return handleLogin(request,{env,storeFactory});
   if(path==='/healthz')return json({ok:true,configured:missingSettings(env).length===0});
   const access=authorize(request,env);
   if(access==='setup')return path.startsWith('/api/')?json({error:'Finish cloud setup in Vercel.',missing:missingSettings(env)},503):setupResponse();
-  if(access==='unauthorized')return json({error:'Owner sign-in required.'},401,{'WWW-Authenticate':'Basic realm="Agent Worker", charset="UTF-8"'});
+  if(access==='unauthorized')return json({error:'Owner sign-in required.'},401);
   if(access==='origin')return json({error:'Origin rejected.'},403);
   try{
    const store=storeFactory(),vault=cloudVault(store,env.CREDENTIAL_ENCRYPTION_KEY),gmail=cloudGmail(store,vault,fetcher);
