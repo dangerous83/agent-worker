@@ -20,3 +20,17 @@
 @media(max-width:1000px){.office-floor,.office-key{display:none}.office-metrics{gap:20px}.office-metrics button{display:none}.agent-inspector{padding:18px;gap:13px}.agent-intro h2{font-size:16px}.agent-mini{width:47px;height:47px}.agent-controls .button{padding:10px}.person-name{font-size:9px;padding:3px 7px}}
 @media(max-width:700px){#content>.intro h1{font-size:24px;max-width:290px}.office-toolbar{padding:12px 13px;font-size:8px;letter-spacing:.7px}.office-toolbar>div{max-width:55%;line-height:1.7}#motion-toggle{font-size:8px;padding:6px 7px}.office-hint{font-size:7px;top:5px}.person-name{font-size:8px;padding:3px 5px}.office-person{height:27%;width:16%;transform:translate(-50%,-57%)}.office-bottom{padding:12px 13px;font-size:7px;letter-spacing:0;gap:8px}.agent-inspector{flex-wrap:wrap;margin-top:20px}.agent-intro{flex:1;min-width:190px}.agent-controls{display:flex;flex-direction:row;align-items:center;justify-content:space-between;width:100%;text-align:left;margin-left:0;border-top:1px solid #e4e8dc;padding-top:12px}.agent-controls>span{font-size:8px}.agent-controls .button{font-size:9px}.office-metrics{gap:15px;justify-content:space-between;padding:20px 0}.office-metrics>div{gap:6px}.office-metrics b{font-size:22px}.office-metrics span{font-size:6px;max-width:65px}.section-title>.muted{display:none}}
 @media(prefers-reduced-motion:reduce){.office-person{transition:none}}
+
+/* Keep the brief and real job updates beside the animated office. */
+.office-workspace{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(290px,1fr);gap:22px;align-items:start}
+.office-stage,.office-workbench{min-width:0}.office-workbench{display:grid;gap:16px}
+.office-workbench .panel{padding:20px}.office-workbench h2{font-size:19px}
+.office-workbench .brief-form textarea{min-height:100px;margin-top:8px}
+.office-workbench .brief-bottom{align-items:stretch;flex-direction:column;gap:10px}.office-workbench .brief-bottom .button{width:100%}
+.office-workbench #office-bulletin{max-height:285px;overflow:auto;overflow-wrap:anywhere}
+.office-workbench .empty{padding:12px 5px}.office-workbench .empty .symbol{font-size:22px}
+.office-stage .agent-inspector{padding:17px;gap:12px;flex-wrap:wrap;margin-top:20px}
+.office-stage .agent-mini{width:44px;height:44px;font-size:23px}.office-stage .agent-intro{flex:1;min-width:150px}.office-stage .agent-intro h2{font-size:17px}
+.office-stage .agent-controls{width:100%;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #e4e8dc;padding-top:12px;margin-left:0}
+@media(max-width:1150px){.office-workspace{grid-template-columns:1fr}.office-workbench{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}.office-stage .agent-controls{width:auto;margin-left:auto;border:0;padding:0}.office-workbench #office-bulletin{max-height:360px}}
+@media(max-width:700px){.office-workspace{gap:20px}.office-workbench{grid-template-columns:1fr}.office-stage .agent-controls{width:100%;border-top:1px solid #e4e8dc;padding-top:12px;margin:0}.office-workbench #office-bulletin{max-height:260px}}
