@@ -1,6 +1,6 @@
 import { randomBytes,createCipheriv,createDecipheriv,createHmac,timingSafeEqual } from 'node:crypto';
 import { verifyHttpBasic } from 'eve/channels/auth';
-export function missingSettings(env=process.env){return ['DATABASE_URL','APP_OWNER_PASSWORD','CREDENTIAL_ENCRYPTION_KEY'].filter(key=>!env[key]||(key==='APP_OWNER_PASSWORD'&&env[key].length<20)||(key==='CREDENTIAL_ENCRYPTION_KEY'&&!/^[a-f0-9]{64}$/i.test(env[key])));}
+export function missingSettings(env=process.env){return ['DATABASE_URL','APP_OWNER_PASSWORD','CREDENTIAL_ENCRYPTION_KEY'].filter(key=>!env[key]||(key==='APP_OWNER_PASSWORD'&&env[key].length<12)||(key==='CREDENTIAL_ENCRYPTION_KEY'&&!/^[a-f0-9]{64}$/i.test(env[key])));}
 const sign=(value,env)=>createHmac('sha256',env.CREDENTIAL_ENCRYPTION_KEY).update(env.APP_OWNER_PASSWORD+'\0'+value).digest('base64url');
 export function sessionToken(env=process.env,now=Date.now()){const value=`${Math.floor(now/1000)+604800}.${randomBytes(24).toString('base64url')}`;return value+'.'+sign(value,env);}
 export function validSession(token,env=process.env,now=Date.now()){

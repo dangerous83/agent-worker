@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {authorize,sessionToken,validSession} from '../cloud/security.mjs';
+import {authorize,sessionToken,validSession,missingSettings} from '../cloud/security.mjs';
 import {handleLogin} from '../cloud/login.mjs';
 const env={DATABASE_URL:'test',APP_OWNER_PASSWORD:'a-long-owner-password-for-testing',CREDENTIAL_ENCRYPTION_KEY:'ab'.repeat(32)};
 const request=(body,origin='https://example.test',path='/api/login')=>new Request('https://example.test'+path,{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -9,3 +9,5 @@ test('Owner sign-in issues a secure session; cookies authorize requests without 
 });
 test('Sign-in rejects wrong passwords, forged origins, and excessive attempts',async()=>{const options={env,storeFactory:()=>({countAttempt:async()=>1})};assert.equal((await handleLogin(request({username:'owner',password:'wrong'}),options)).status,401);assert.equal((await handleLogin(request({username:'owner',password:env.APP_OWNER_PASSWORD},'https://attacker.test'),options)).status,403);assert.equal((await handleLogin(request({username:'owner',password:env.APP_OWNER_PASSWORD}),{env,storeFactory:()=>({countAttempt:async()=>31})})).status,429);});
 test('Sessions reject tampering, expiry, invalid Unicode and password rotation; logout expires cookies',async()=>{const now=Date.now(),token=sessionToken(env,now);assert.equal(validSession(token,env,now),true);assert.equal(validSession(token+'x',env,now),false);assert.equal(validSession(token,env,now+604801000),false);assert.equal(validSession(token,{...env,APP_OWNER_PASSWORD:'changed-owner-password'},now),false);assert.equal(validSession(token.split('.').slice(0,2).join('.')+'.'+'é'.repeat(43),env,now),false);const logout=await handleLogin(request({},'https://example.test','/api/logout'),{env});assert.match(logout.headers.get('set-cookie'),/Max-Age=0/);});
+
+test('Cloud accepts 12-character owner passwords and rejects shorter ones',()=>{assert.deepEqual(missingSettings({...env,APP_OWNER_PASSWORD:'x'.repeat(12)}),[]);assert.ok(missingSettings({...env,APP_OWNER_PASSWORD:'x'.repeat(11)}).includes('APP_OWNER_PASSWORD'));});

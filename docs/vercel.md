@@ -8,7 +8,7 @@ Import `dangerous83/agent-worker`, use the **Next.js** preset, root `./`, build 
 
 - Connect a Neon Postgres database through Vercel Storage. This supplies `DATABASE_URL`. Review the selected provider plan and terms before provisioning.
 - `APP_OWNER_USER`: defaults to `owner`.
-- `APP_OWNER_PASSWORD`: at least 20 characters. Set this privately in Vercel, not GitHub.
+- `APP_OWNER_PASSWORD`: at least 12 characters. Set this privately in Vercel, not GitHub.
 - `CREDENTIAL_ENCRYPTION_KEY`: exactly 64 hexadecimal characters from a secure random 32-byte generator. Keep this key stable; replacing it prevents decrypting existing Google credentials.
 - AI Gateway uses the Vercel deployment identity via OIDC. The project's model access, quota and billing must permit inference. No model call occurs merely by visiting the setup screen.
 - Google credentials can be configured in the authenticated Connections screen, or through `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Register the actual production origin plus `/auth/gmail/callback` in Google Cloud.
