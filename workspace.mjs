@@ -9,6 +9,7 @@ import { createRuntime } from './lib/runtime.mjs';
 import { createVault } from './lib/vault.mjs';
 import { createGmail } from './lib/gmail.mjs';
 import { deploymentConfig, validOwner, persistWorkflows } from './lib/deployment.mjs';
+import { createStaff } from './lib/staff.mjs';
 
 const brandSchema = z.object({name:z.string().max(120),audience:z.string().max(1000),voice:z.string().max(400),description:z.string().max(4000),color:z.string().regex(/^#[0-9a-f]{6}$/i)});
 const editsSchema = campaignSchema.partial().extend({ status: z.enum(['draft','approved']), plannedAt: z.string().max(50).optional() }).partial();
@@ -17,6 +18,7 @@ export function createApp({store=createStore(),agent=createAgent(),runtime=null,
   // A restart cannot safely redeliver an interrupted campaign without risking duplicate model charges.
   for (const job of store.jobs().filter(j=>j.status==='running')) store.updateJob(job.id,{status:'failed',error:'The app restarted before the campaign finished. Please try again.'});
   let running = false;
+  const staff=createStaff({store,agent});
   const send = (res,status,data) => { res.writeHead(status,{'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(data)); };
   return http.createServer(async(req,res)=>{
     res.setHeader('X-Content-Type-Options','nosniff');
@@ -42,6 +44,13 @@ export function createApp({store=createStore(),agent=createAgent(),runtime=null,
       if(req.method==='GET'&&url.pathname==='/api/workspace'){
         const online=await agent.health();
         return send(res,200,{brand:store.brand(),campaigns:store.campaigns(),jobs:store.jobs(),connections:{ai:online,aiModel:agent.status?.()||{state:'unverified'},runtime:runtime?await runtime.status():{state:online?'online':'offline'},instagram:false,instagramAccountType:'personal',email:gmail?.status().connected||false,gmail:gmail?.status()||{configured:false,connected:false},hosting:{state:config.production?'hosted':'local',origin:config.origin,message:config.production?'Running on the backend host with owner sign-in and persistent storage.':'This app is currently running on your computer. Public hosting is not configured.'}}});
+      }
+      if(req.method==='GET'&&url.pathname==='/api/staff')return send(res,200,staff.snapshot());
+      if(req.method==='POST'&&url.pathname==='/api/staff/reminders')return send(res,201,staff.reminder(body));
+      const staffRoute=url.pathname.match(/^\/api\/staff\/(manager|instagram|email|reviewer)\/(messages|read)$/);
+      if(req.method==='POST'&&staffRoute){
+        if(staffRoute[2]==='read'){staff.acknowledge(staffRoute[1]);return send(res,200,{ok:true});}
+        return send(res,202,await staff.message(staffRoute[1],body));
       }
       if(req.method==='POST'&&url.pathname==='/api/runtime/start'){
         if(!runtime)return send(res,409,{error:'Start the app with npm start to manage the AI service.'});
@@ -106,7 +115,7 @@ export function createApp({store=createStore(),agent=createAgent(),runtime=null,
       }
       if(url.pathname.startsWith('/api/'))return send(res,404,{error:'Not found.'});
       if(req.method!=='GET')return send(res,405,{error:'Method not allowed.'});
-      const paths={'/':'index.html','/app.js':'app.js','/office.js':'office.js','/connections.js':'connections.js','/styles.css':'styles.css','/office.css':'office.css'};
+      const paths={'/':'index.html','/app.js':'app.js','/office.js':'office.js','/staff.js':'staff.js','/connections.js':'connections.js','/styles.css':'styles.css','/office.css':'office.css'};
       const name=paths[url.pathname];if(!name)return send(res,404,{error:'Not found.'});
       const content=await readFile(new URL(`./public/${name}`,import.meta.url));
       res.writeHead(200,{'Content-Type':({'html':'text/html','js':'text/javascript','css':'text/css'})[extname(name).slice(1)]+'; charset=utf-8'});res.end(content);

@@ -15,7 +15,7 @@ export function officeMarkup() {
   <section class="agent-inspector" aria-label="Selected worker" aria-live="polite"><div class="agent-mini" id="agent-mini">✦</div><div class="agent-intro"><p class="eyebrow" id="agent-role">YOUR NEXT GREAT COLLABORATOR</p><h2 id="agent-name">Good things start with a hello.</h2><p id="agent-line">Pick someone in the office to see what they do.</p></div><div class="agent-controls"><span id="agent-mode">No campaign running</span><button class="button primary" id="assign-agent" disabled>Choose a teammate ↗</button></div></section>`;
 }
 
-export function mountOffice({ hasJob, workerState, onAssign }) {
+export function mountOffice({ hasJob, workerState, onAssign, onSelect = () => {} }) {
   const canvas = document.querySelector('#office-scene');
   if (!canvas) return () => {};
   const ctx = canvas.getContext('2d');
@@ -127,6 +127,7 @@ export function mountOffice({ hasJob, workerState, onAssign }) {
     people.forEach(p=>{if(p.id===id)goToDesk(p);});
     canvas.parentElement.querySelectorAll('[data-agent]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.agent===id)));
     updatePanel();
+    onSelect(staff.find(p=>p.id===id));
   }
   const buttons=Array.from(canvas.parentElement.querySelectorAll('[data-agent]'));
   const listeners=buttons.map(button=>{const listener=()=>select(button.dataset.agent);button.addEventListener('click',listener);return listener;});
