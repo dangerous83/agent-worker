@@ -12,5 +12,5 @@ export async function staffSpeech(body,{store,run=generateSpeech,env=process.env
   const result=await run({model:env.AI_SPEECH_MODEL||'google/gemini-3.8-flash-lite-tts',text:message.text.slice(0,4000),voice:voices[worker],outputFormat:'wav',maxRetries:0,abortSignal:AbortSignal.timeout(60000)});
   if(!result.audio?.uint8Array?.length)throw Error('Empty speech');
   return new Response(result.audio.uint8Array,{headers:{'Content-Type':result.audio.mediaType||'audio/wav','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
- }catch(error){console.error('Staff speech failed',{name:error?.name,statusCode:error?.statusCode});throw Object.assign(Error('Natural voice could not be generated. Check the speech model access and AI credit in Vercel.'),{statusCode:502});}
+ }catch(error){const details=[error?.message,error?.cause?.message,error?.responseBody].filter(Boolean).join(' ');const restricted=/free tier|RestrictedModels|no_providers_available/i.test(details);const message=restricted?'Natural speech is unavailable with the current free AI credit tier. Add speech access in Vercel AI Gateway to enable it.':'Natural voice could not be generated. Check the speech model access and AI credit in Vercel.';console.error('Staff speech failed',{name:error?.name,statusCode:error?.statusCode,restricted});throw Object.assign(Error(message),{statusCode:502});}
 }
