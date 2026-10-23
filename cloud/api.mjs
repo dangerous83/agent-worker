@@ -1,9 +1,8 @@
 import {z} from 'zod';
 import {randomUUID} from 'node:crypto';
-import {Client} from 'eve/client';
-import {getVercelOidcToken} from '@vercel/oidc';
 import {waitUntil} from '@vercel/functions';
-import {createAgent,campaignSchema} from '../lib/agent.mjs';
+import {campaignSchema} from '../lib/agent.mjs';
+import {createCloudAgent} from './agent.mjs';
 import {cloudStore} from './store.mjs';
 import {authorize,cloudVault,missingSettings} from './security.mjs';
 import {cloudGmail} from './gmail.mjs';
@@ -30,7 +29,7 @@ export function createCloudHandler({env=process.env,storeFactory=cloudStore,agen
   try{
    const store=storeFactory(),vault=cloudVault(store,env.CREDENTIAL_ENCRYPTION_KEY),gmail=cloudGmail(store,vault,fetcher);
    const brand=await store.get('setting','brand')||defaults;
-   const agent=agentFactory?agentFactory():createAgent({client:new Client({host:url.origin,auth:{vercelOidc:{token:async()=>await getVercelOidcToken()}},redirect:'error'})});
+   const agent=agentFactory?agentFactory():createCloudAgent({env});
    let body={};if(['POST','PUT','PATCH'].includes(request.method)){if(!request.headers.get('content-type')?.startsWith('application/json'))return json({error:'JSON required.'},415);const raw=await request.text();if(raw.length>64000)return json({error:'Request too large.'},413);try{body=JSON.parse(raw);}catch{return json({error:'Invalid JSON.'},400);}}
    const post=request.method==='POST';
    async function background(task){keepAlive(task.catch(()=>{}));}
