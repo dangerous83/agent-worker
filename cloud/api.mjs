@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {createStudioHandler} from './studio.mjs';
 import {randomUUID} from 'node:crypto';
 import {waitUntil} from '@vercel/functions';
 import {campaignSchema} from '../lib/agent.mjs';
@@ -12,7 +13,7 @@ const workerSchema=z.enum(Object.keys(workers));
 const brandSchema=z.object({name:z.string().max(120),audience:z.string().max(1000),voice:z.string().max(400),description:z.string().max(4000),color:z.string().regex(/^#[0-9a-f]{6}$/i)});
 const edits=campaignSchema.partial().extend({status:z.enum(['draft','approved']).optional(),plannedAt:z.string().max(50).optional()});
 const defaults={name:'',audience:'',voice:'Friendly and clear',description:'',color:'#bdff79'};
-const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; media-src 'self' blob:; frame-ancestors 'none'"};
+const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https://*.blob.vercel-storage.com; connect-src 'self' https://*.blob.vercel-storage.com https://blob.vercel-storage.com; media-src 'self' blob: https://*.blob.vercel-storage.com; frame-ancestors 'none'"};
 const json=(data,status=200,extra={})=>Response.json(data,{status,headers:{...headers,...extra}});
 const failure=(message,statusCode=409)=>Object.assign(new Error(message),{statusCode});
 export function setupResponse(){return new Response(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Agent Worker — finish cloud setup</title><link rel="stylesheet" href="/styles.css"><body><section class="panel cloud-setup"><p class="eyebrow">AGENT WORKER · VERCEL</p><h1>Finish your private workspace setup.</h1><p>The application is deployed. Cloud storage must be configured before campaigns and conversations can load.</p><p>In this Vercel project's settings, connect a Neon database and set <strong>CREDENTIAL_ENCRYPTION_KEY</strong> (64 hexadecimal characters). Then redeploy.</p><p>No workspace username or password is required. Keep service credentials in Vercel's private environment settings.</p><p>AI and Gmail connections are configured in Connections. Instagram publishing is not connected.</p></section></body></html>`,{status:503,headers:{...headers,'Content-Type':'text/html; charset=utf-8'}});}
@@ -24,6 +25,7 @@ export function createCloudHandler({env=process.env,storeFactory=cloudStore,agen
   const access=authorize(request,env);
   if(access==='setup')return path.startsWith('/api/')?json({error:'Finish cloud setup in Vercel.',missing:missingSettings(env)},503):setupResponse();
   if(access==='origin')return json({error:'Origin rejected.'},403);
+  if(path==='/api/studio'||path.startsWith('/api/studio/'))return createStudioHandler({storeFactory,env})(request);
   try{
    const store=storeFactory(),vault=cloudVault(store,env.CREDENTIAL_ENCRYPTION_KEY),gmail=cloudGmail(store,vault,fetcher);
    const brand=await store.get('setting','brand')||defaults;

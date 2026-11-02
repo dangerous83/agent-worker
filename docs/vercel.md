@@ -29,3 +29,15 @@ Local data remains in the existing SQLite file. This deployment does not upload 
 ## Verification
 
 `npm test` covers existing local behavior plus cloud access gates, background jobs across request-handler instances, worker chats, encrypted secrets, cross-instance Google OAuth, and concurrent Gmail deduplication. External Google/model responses are test fixtures. A real Neon connection, live model reply and real Gmail delivery require the deployed project's accounts and credentials.
+
+## Content studio
+
+The Content studio accepts real images (JPG/PNG/WEBP, 20 MB maximum) and video (MP4/MOV/WEBM, 100 MB maximum). Uploads use scoped, expiring direct PUT URLs into a private Vercel Blob store. Set `BLOB_STORE_ID` for OIDC authorization or `BLOB_READ_WRITE_TOKEN` for an existing store. Both metadata and drafts are partitioned by a random HttpOnly browser cookie; another browser starts a separate studio. Keep the browser cookies to retain access. Existing text campaigns remain available under Earlier text campaigns.
+
+AI copy generation sends a compressed image preview or three sampled video frames, together with brand memory and optional notes, to the already configured AI Gateway model. It does not transcribe video audio. Copy generation never publishes anything.
+
+Saving a draft or a date only writes a plan to Postgres. To enable real Instagram scheduling/rescheduling and performance, set `METRICOOL_USER_TOKEN`, `METRICOOL_USER_ID`, `METRICOOL_BLOG_ID` and optionally `METRICOOL_ACCOUNT_LABEL` in Vercel privately. The ChatGPT Metricool connection does not transfer its credentials into this app. Metricool's REST API requires an eligible API-access plan. No token is returned to the browser. See https://app.metricool.com/resources/apidocs/index.html for the verified API contract.
+
+Review & schedule shows the complete published text, media, account and timezone. Confirm schedule explicitly transfers the selected media to Metricool for publishing. The server uses `saveExternalMediaFiles` with a scoped private media URL so the provider can ingest the file. It only marks scheduled after a provider receipt, reuses the remote ID for rescheduling, and deduplicates the same saved revision. Ambiguous failures require checking Metricool before retrying. No automatic retry occurs. Live network publishing is not verified until this deployment's Metricool API credentials are configured.
+
+Performance loads the connected brand's published Instagram posts from the last 30 days. It preserves real zero values, displays absent metrics as a dash, and never fabricates likes, views or clicks. Provider eligibility and available metrics remain governed by the connected account and network.
