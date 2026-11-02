@@ -1,13 +1,19 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {authorize,sessionToken,validSession,missingSettings} from '../cloud/security.mjs';
-import {handleLogin} from '../cloud/login.mjs';
-const env={DATABASE_URL:'test',APP_OWNER_PASSWORD:'a-long-owner-password-for-testing',CREDENTIAL_ENCRYPTION_KEY:'ab'.repeat(32)};
-const request=(body,origin='https://example.test',path='/api/login')=>new Request('https://example.test'+path,{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify(body)});
-test('Owner sign-in issues a secure session; cookies authorize requests without browser Basic auth',async()=>{
- const response=await handleLogin(request({username:'owner',password:env.APP_OWNER_PASSWORD}),{env,storeFactory:()=>({countAttempt:async()=>1})});assert.equal(response.status,200);const cookie=response.headers.get('set-cookie');assert.match(cookie,/HttpOnly; Secure; SameSite=Lax/);assert.match(cookie,/__Host-agent_worker=/);assert.equal(authorize(new Request('https://example.test/api/workspace',{headers:{cookie:cookie.split(';')[0]}}),env),'ok');assert.equal(authorize(new Request('https://example.test/api/workspace'),env),'unauthorized');
+import {authorize,missingSettings} from '../cloud/security.mjs';
+import {GET} from '../app/route.js';
+const env={DATABASE_URL:'test',CREDENTIAL_ENCRYPTION_KEY:'ab'.repeat(32)};
+test('Cloud opens without owner credentials and preserves origin and configuration checks',()=>{
+ assert.deepEqual(missingSettings(env),[]);
+ assert.equal(authorize(new Request('https://example.test/api/workspace'),env),'ok');
+ assert.equal(authorize(new Request('https://example.test/api/workspace',{headers:{Origin:'https://attacker.test'}}),env),'origin');
+ assert.equal(authorize(new Request('https://example.test/api/workspace'),{}),'setup');
+ assert.ok(missingSettings({...env,CREDENTIAL_ENCRYPTION_KEY:'invalid'}).includes('CREDENTIAL_ENCRYPTION_KEY'));
 });
-test('Sign-in rejects wrong passwords, forged origins, and excessive attempts',async()=>{const options={env,storeFactory:()=>({countAttempt:async()=>1})};assert.equal((await handleLogin(request({username:'owner',password:'wrong'}),options)).status,401);assert.equal((await handleLogin(request({username:'owner',password:env.APP_OWNER_PASSWORD},'https://attacker.test'),options)).status,403);assert.equal((await handleLogin(request({username:'owner',password:env.APP_OWNER_PASSWORD}),{env,storeFactory:()=>({countAttempt:async()=>31})})).status,429);});
-test('Sessions reject tampering, expiry, invalid Unicode and password rotation; logout expires cookies',async()=>{const now=Date.now(),token=sessionToken(env,now);assert.equal(validSession(token,env,now),true);assert.equal(validSession(token+'x',env,now),false);assert.equal(validSession(token,env,now+604801000),false);assert.equal(validSession(token,{...env,APP_OWNER_PASSWORD:'changed-owner-password'},now),false);assert.equal(validSession(token.split('.').slice(0,2).join('.')+'.'+'é'.repeat(43),env,now),false);const logout=await handleLogin(request({},'https://example.test','/api/logout'),{env});assert.match(logout.headers.get('set-cookie'),/Max-Age=0/);});
-
-test('Cloud accepts 12-character owner passwords and rejects shorter ones',()=>{assert.deepEqual(missingSettings({...env,APP_OWNER_PASSWORD:'x'.repeat(12)}),[]);assert.ok(missingSettings({...env,APP_OWNER_PASSWORD:'x'.repeat(11)}).includes('APP_OWNER_PASSWORD'));});
+test('Home page serves the actual office without a username or password form',async()=>{
+ const original={...process.env};
+ try{Object.assign(process.env,env);delete process.env.APP_OWNER_PASSWORD;
+ const response=await GET(new Request('https://example.test/'));assert.equal(response.status,200);
+ const html=await response.text();assert.match(html,/app.js/);assert.doesNotMatch(html,/owner-login|name="password"|Sign in/);
+ }finally{for(const key of ['DATABASE_URL','CREDENTIAL_ENCRYPTION_KEY','APP_OWNER_PASSWORD']){if(original[key]===undefined)delete process.env[key];else process.env[key]=original[key];}}
+});

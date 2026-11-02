@@ -7,11 +7,10 @@ Import `dangerous83/agent-worker`, use the **Next.js** preset, root `./`, build 
 ## Private environment settings
 
 - Connect a Neon Postgres database through Vercel Storage. This supplies `DATABASE_URL`. Review the selected provider plan and terms before provisioning.
-- `APP_OWNER_USER`: defaults to `owner`.
-- `APP_OWNER_PASSWORD`: at least 12 characters. Set this privately in Vercel, not GitHub.
+- Workspace sign-in is disabled: the home page opens directly. `APP_OWNER_USER` and `APP_OWNER_PASSWORD` are no longer used on Vercel. Anyone with the URL can view and change workspace data, invoke AI, manage connections, and send approved emails through connected Gmail.
 - `CREDENTIAL_ENCRYPTION_KEY`: exactly 64 hexadecimal characters from a secure random 32-byte generator. Keep this key stable; replacing it prevents decrypting existing Google credentials.
 - AI Gateway uses the Vercel deployment identity via OIDC. The project's model access, quota and billing must permit inference. No model call occurs merely by visiting the setup screen.
-- Google credentials can be configured in the authenticated Connections screen, or through `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Register the actual production origin plus `/auth/gmail/callback` in Google Cloud.
+- Google credentials can be configured in the Connections screen, or through `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Register the actual production origin plus `/auth/gmail/callback` in Google Cloud.
 
 Redeploy after updating environment settings. Missing critical settings produce a locked setup page and 503 API responses. Nothing falls back to temporary or browser-only storage. Do not describe that setup page as a fully working deployment.
 

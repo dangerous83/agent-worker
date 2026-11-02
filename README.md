@@ -1,6 +1,6 @@
 # Agent Worker
 
-Vercel support: the Next.js dashboard and cloud API are implemented. See [Vercel setup](docs/vercel.md) for database and private environment requirements. A locked setup page does not mean AI, Gmail, or Instagram are connected.
+Vercel support: the Next.js dashboard and cloud API are implemented. See [Vercel setup](docs/vercel.md) for database and private environment requirements. A setup page does not mean AI, Gmail, or Instagram are connected. The Vercel interface opens without a workspace username or password; anyone with its URL can use its connected features.
 
 
 A personal AI marketing workspace with a pixel-art office, real eve agent sessions, campaign editing, and a Gmail OAuth sending integration. Node.js 24 is required.

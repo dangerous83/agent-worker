@@ -7,7 +7,6 @@ import {staffSpeech} from './speech.mjs';
 import {cloudStore} from './store.mjs';
 import {authorize,cloudVault,missingSettings} from './security.mjs';
 import {cloudGmail} from './gmail.mjs';
-import {handleLogin} from './login.mjs';
 const workers={manager:'Milo',instagram:'Luna',email:'Kai',reviewer:'Nova'};
 const workerSchema=z.enum(Object.keys(workers));
 const brandSchema=z.object({name:z.string().max(120),audience:z.string().max(1000),voice:z.string().max(400),description:z.string().max(4000),color:z.string().regex(/^#[0-9a-f]{6}$/i)});
@@ -16,16 +15,14 @@ const defaults={name:'',audience:'',voice:'Friendly and clear',description:'',co
 const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; media-src 'self' blob:; frame-ancestors 'none'"};
 const json=(data,status=200,extra={})=>Response.json(data,{status,headers:{...headers,...extra}});
 const failure=(message,statusCode=409)=>Object.assign(new Error(message),{statusCode});
-export function setupResponse(){return new Response(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Agent Worker — finish cloud setup</title><link rel="stylesheet" href="/styles.css"><body><section class="panel cloud-setup"><p class="eyebrow">AGENT WORKER · VERCEL</p><h1>Finish your private workspace setup.</h1><p>The application is deployed. Your campaigns and conversations remain locked until cloud storage and owner access are configured.</p><p>In this Vercel project's settings, connect a Neon database and set <strong>APP_OWNER_PASSWORD</strong> (at least 12 characters) and <strong>CREDENTIAL_ENCRYPTION_KEY</strong> (64 hexadecimal characters). Then redeploy.</p><p>Your username defaults to <strong>owner</strong>. Keep all credentials in Vercel's private environment settings.</p><p>AI and Gmail connections are configured after owner sign-in. Instagram publishing is not connected.</p></section></body></html>`,{status:503,headers:{...headers,'Content-Type':'text/html; charset=utf-8'}});}
+export function setupResponse(){return new Response(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Agent Worker — finish cloud setup</title><link rel="stylesheet" href="/styles.css"><body><section class="panel cloud-setup"><p class="eyebrow">AGENT WORKER · VERCEL</p><h1>Finish your private workspace setup.</h1><p>The application is deployed. Cloud storage must be configured before campaigns and conversations can load.</p><p>In this Vercel project's settings, connect a Neon database and set <strong>CREDENTIAL_ENCRYPTION_KEY</strong> (64 hexadecimal characters). Then redeploy.</p><p>No workspace username or password is required. Keep service credentials in Vercel's private environment settings.</p><p>AI and Gmail connections are configured in Connections. Instagram publishing is not connected.</p></section></body></html>`,{status:503,headers:{...headers,'Content-Type':'text/html; charset=utf-8'}});}
 
 export function createCloudHandler({env=process.env,storeFactory=cloudStore,agentFactory,keepAlive=waitUntil,fetcher=fetch}={}){
  return async function handle(request){
   const url=new URL(request.url),path=url.pathname;
-  if(path==='/api/login'||path==='/api/logout')return handleLogin(request,{env,storeFactory});
   if(path==='/healthz')return json({ok:true,configured:missingSettings(env).length===0});
   const access=authorize(request,env);
   if(access==='setup')return path.startsWith('/api/')?json({error:'Finish cloud setup in Vercel.',missing:missingSettings(env)},503):setupResponse();
-  if(access==='unauthorized')return json({error:'Owner sign-in required.'},401);
   if(access==='origin')return json({error:'Origin rejected.'},403);
   try{
    const store=storeFactory(),vault=cloudVault(store,env.CREDENTIAL_ENCRYPTION_KEY),gmail=cloudGmail(store,vault,fetcher);
@@ -39,7 +36,7 @@ export function createCloudHandler({env=process.env,storeFactory=cloudStore,agen
     const [campaigns,jobs,mail,model]=await Promise.all([store.list('campaign'),store.list('job'),gmail.status(),store.get('setting','model')]);
     // Surface interrupted invocations honestly, without repeating model work or external sends.
     for(const job of jobs)if(job.status==='running'&&Date.parse(job.createdAt)<Date.now()-300000){job.status='failed';job.error='This background run timed out. Please check the model connection and retry.';await store.patch('job',job.id,{status:job.status,error:job.error});}
-    return json({brand,campaigns,jobs,connections:{ai:true,aiModel:model||{state:'unverified',message:'Check your Vercel model connection.'},runtime:{state:'online'},email:mail.connected,gmail:mail,instagram:false,instagramAccountType:'personal',hosting:{state:'hosted',origin:url.origin,message:'Hosted on Vercel with cloud database storage and owner sign-in.'}}});
+    return json({brand,campaigns,jobs,connections:{ai:true,aiModel:model||{state:'unverified',message:'Check your Vercel model connection.'},runtime:{state:'online'},email:mail.connected,gmail:mail,instagram:false,instagramAccountType:'personal',hosting:{state:'hosted',origin:url.origin,message:'Hosted on Vercel with cloud database storage and direct workspace access.'}}});
    }
    if(path==='/api/brand'&&request.method==='PUT')return json(await store.put('setting','brand',brandSchema.parse(body)));
    if(path==='/api/campaigns'&&post)return json(await store.add('campaign',{...campaignSchema.parse(body),brand,source:'manual',status:'draft'}),201);
